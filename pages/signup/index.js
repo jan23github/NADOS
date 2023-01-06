@@ -1,36 +1,35 @@
-import React, { useContext, useEffect } from 'react'
-import { Button } from '@mui/material';
-import TextField from '@mui/material/TextField';
+import React, { useContext, useEffect } from "react";
+import { Button } from "@mui/material";
+import TextField from "@mui/material/TextField";
 // Next inbuilt Image
-import Image from 'next/image';
+import Image from "next/image";
 // import insta from '../../assets/insta.jpg'
-import NADOS from '../../assets/nadosLightLogo.png'
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { AuthContext } from '../../context/auth';
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import {db, storage } from '../../firebase'
-import { doc, setDoc } from 'firebase/firestore';
+import NADOS from "../../assets/nadosLightLogo.png";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { AuthContext } from "../../context/auth";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { db, storage } from "../../firebase";
+import { doc, setDoc } from "firebase/firestore";
 function Index() {
+    const router = useRouter();
+    const [email, setEmail] = React.useState("");
+    const [password, setPassword] = React.useState("");
+    const [name, setName] = React.useState("");
+    const [file, setFile] = React.useState(null);
+    const [error, setError] = React.useState("");
+    const [loading, setLoading] = React.useState(false);
 
-    const router = useRouter()
-    const [email, setEmail] = React.useState('')
-    const [password, setPassword] = React.useState('')
-    const [name, setName] = React.useState('')
-    const [file, setFile] = React.useState(null)
-    const [error, setError] = React.useState('')
-    const [loading, setLoading] = React.useState(false)
-
-    const { signup, user } = useContext(AuthContext)
+    const { signup, user } = useContext(AuthContext);
 
     const handleClick = async () => {
         try {
-            setLoading(true)
-            setError('')
-            // auth -> unique id 
-            const user = await signup(email, password)
-            console.log("Signed Up!")
-            // storage 
+            setLoading(true);
+            setError("");
+            // auth -> unique id
+            const user = await signup(email, password);
+            console.log("Signed Up!");
+            // storage
             const storageRef = ref(storage, `${user.uid}/Profile`);
 
             const uploadTask = uploadBytesResumable(storageRef, file);
@@ -39,84 +38,127 @@ function Index() {
             // 1. 'state_changed' observer, called any time the state changes
             // 2. Error observer, called on failure
             // 3. Completion observer, called on successful completion
-            uploadTask.on('state_changed',
+            uploadTask.on(
+                "state_changed",
                 (snapshot) => {
                     // Observe state change events such as progress, pause, and resume
                     // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Upload is ' + progress + '% done');
+                    const progress =
+                        (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log("Upload is " + progress + "% done");
                 },
                 (error) => {
                     // Handle unsuccessful uploads
-                    console.log(error)
+                    console.log(error);
                 },
                 () => {
                     // Handle successful uploads on complete
                     // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-                    getDownloadURL(uploadTask.snapshot.ref).then(async(downloadURL) => {
-                        console.log('File available at', downloadURL);
-                        let obj = {
-                            name: name,
-                            email: email,
-                            uid : user.user.uid,
-                            photoURL : downloadURL,
-                            posts:[]
+                    getDownloadURL(uploadTask.snapshot.ref).then(
+                        async (downloadURL) => {
+                            console.log("File available at", downloadURL);
+                            let obj = {
+                                name: name,
+                                email: email,
+                                uid: user.user.uid,
+                                photoURL: downloadURL,
+                                posts: [],
+                            };
+                            // firestore
+                            await setDoc(doc(db, "users", user.user.uid), obj);
+                            console.log("doc added");
                         }
-                        // firestore 
-                        await setDoc(doc(db,"users",user.user.uid),obj)
-                        console.log("doc added")
-                    });
+                    );
                 }
             );
         } catch (err) {
-            console.log(err)
-            setError(err.message)
+            console.log(err);
+            setError(err.message);
             setTimeout(() => {
-                setError('')
-            }, 2000)
+                setError("");
+            }, 2000);
         }
-        setLoading(false)
-    }
+        setLoading(false);
+    };
 
     useEffect(() => {
         if (user) {
-            router.push('/')
-        }
-        else {
+            router.push("/");
+        } else {
             console.log("Not logged in");
         }
-    }, [user])
-
-
+    }, [user]);
 
     return (
         <div className="signup-container">
-            <div className='signup-card'>
+            <div className="signup-card">
                 {/* basic image use method */}
-                <Image src={NADOS} />
+                <Image src={NADOS} alt="NADOS" />
 
-                <TextField size="small" margin='dense' id="outlined-basic" fullWidth
-                    label="Email" variant="outlined" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <TextField size="small" margin='dense' id="outlined-basic" fullWidth
-                    label="Password" type="password" variant="outlined" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <TextField size="small" margin='dense' id="outlined-basic" fullWidth
-                    label="Full Name" variant="outlined" value={name} onChange={(e) => setName(e.target.value)} />
-                <Button variant="outlined" fullWidth component="label" style={{ marginTop: '1rem' }}>
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setFile(e.target.files[0])} />
+                <TextField
+                    size="small"
+                    margin="dense"
+                    id="outlined-basic"
+                    fullWidth
+                    label="Email"
+                    variant="outlined"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                <TextField
+                    size="small"
+                    margin="dense"
+                    id="outlined-basic"
+                    fullWidth
+                    label="Password"
+                    type="password"
+                    variant="outlined"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <TextField
+                    size="small"
+                    margin="dense"
+                    id="outlined-basic"
+                    fullWidth
+                    label="Full Name"
+                    variant="outlined"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                />
+                <Button
+                    variant="outlined"
+                    fullWidth
+                    component="label"
+                    style={{ marginTop: "1rem" }}
+                >
+                    <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => setFile(e.target.files[0])}
+                    />
                     Upload
                 </Button>
 
-                <Button variant="contained" fullWidth
-                    style={{ marginTop: '1rem' }} onClick={handleClick} disabled={loading}>
+                <Button
+                    variant="contained"
+                    fullWidth
+                    style={{ marginTop: "1rem" }}
+                    onClick={handleClick}
+                    disabled={loading}
+                >
                     Sign Up
                 </Button>
-
             </div>
-            <div className='bottom-card'>
-                Already Have an Account? <Link href="/login"><span style={{ color: 'blue' }}>Login</span></Link>
+            <div className="bottom-card">
+                Already Have an Account?{" "}
+                <Link href="/login" passHref>
+                    <span style={{ color: "blue" }}>Login</span>
+                </Link>
             </div>
         </div>
-    )
+    );
 }
 
-export default Index
+export default Index;
